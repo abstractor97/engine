@@ -185,6 +185,9 @@ pc.extend(pc, function () {
         this._attached = false;
         this._target = null;
 
+        // force disable all element input events
+        this._enabled = true;
+
         this._lastX = 0;
         this._lastY = 0;
 
@@ -234,7 +237,9 @@ pc.extend(pc, function () {
 
             if ('ontouchstart' in window) {
                 this._target.addEventListener('touchstart', this._touchstartHandler, { passive: true });
-                this._target.addEventListener('touchend', this._touchendHandler, { passive: true });
+                // Passive is not used for the touchend event because some components need to be
+                // able to call preventDefault(). See notes in button/component.js for more details.
+                this._target.addEventListener('touchend', this._touchendHandler, false);
                 this._target.addEventListener('touchmove', this._touchmoveHandler, false);
                 this._target.addEventListener('touchcancel', this._touchcancelHandler, { passive: true });
             }
@@ -287,6 +292,8 @@ pc.extend(pc, function () {
         },
 
         _handleUp: function (event) {
+            if (!this._enabled) return;
+
             if (pc.Mouse.isPointerLocked())
                 return;
 
@@ -298,6 +305,8 @@ pc.extend(pc, function () {
         },
 
         _handleDown: function (event) {
+            if (!this._enabled) return;
+
             if (pc.Mouse.isPointerLocked())
                 return;
 
@@ -309,6 +318,8 @@ pc.extend(pc, function () {
         },
 
         _handleMove: function (event) {
+            if (!this._enabled) return;
+
             this._calcMouseCoords(event);
             if (targetX === null)
                 return;
@@ -320,6 +331,8 @@ pc.extend(pc, function () {
         },
 
         _handleWheel: function (event) {
+            if (!this._enabled) return;
+
             this._calcMouseCoords(event);
             if (targetX === null)
                 return;
@@ -365,6 +378,8 @@ pc.extend(pc, function () {
         },
 
         _handleTouchStart: function (event) {
+            if (!this._enabled) return;
+
             var newTouchedElements = this._determineTouchedElements(event);
 
             for (var i = 0, len = event.changedTouches.length; i < len; i++) {
@@ -382,6 +397,8 @@ pc.extend(pc, function () {
         },
 
         _handleTouchEnd: function (event) {
+            if (!this._enabled) return;
+
             var cameras = this.app.systems.camera.cameras;
 
             /*
@@ -428,6 +445,8 @@ pc.extend(pc, function () {
         },
 
         _handleTouchMove: function (event) {
+            if (!this._enabled) return;
+
             /*
              * call preventDefault to avoid issues in Chrome Android:
              * http://wilsonpage.co.uk/touch-events-in-chrome-android/
@@ -751,6 +770,15 @@ pc.extend(pc, function () {
             return false;
         }
     };
+
+    Object.defineProperty(ElementInput.prototype, 'enabled', {
+        get: function () {
+            return this._enabled;
+        },
+        set: function (value) {
+            this._enabled = value;
+        }
+    });
 
     Object.defineProperty(ElementInput.prototype, 'app', {
         get: function () {
